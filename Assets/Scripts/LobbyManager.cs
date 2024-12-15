@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class LobbyManager : MonoBehaviour
 {
@@ -12,6 +13,7 @@ public class LobbyManager : MonoBehaviour
     public GameObject mainMenu;
     public GameObject createLobbyMenu;
     public GameObject joinLobbyMenu;
+    public TextMeshProUGUI usernamesDisplay;
 
     private int initializedLobbyId;
 
@@ -68,6 +70,8 @@ public class LobbyManager : MonoBehaviour
                 {
                     initializedLobbyId = lobbyId;
                     Debug.Log("Stored Lobby ID: " + initializedLobbyId);
+                    Debug.Log("Lobby created with username: " + username);
+                    FetchAndDisplayUsernames();
                 }
                 else
                 {
@@ -152,6 +156,7 @@ public class LobbyManager : MonoBehaviour
     }
 
     private IEnumerator StartGameCoroutine( string username) {
+        
         string url = "http://localhost:8080/lobby/startGame";
 
         WWWForm form = new WWWForm();
@@ -165,12 +170,15 @@ public class LobbyManager : MonoBehaviour
             if (www.result == UnityWebRequest.Result.Success)
             {
                 Debug.Log("Game started successfully: " + www.downloadHandler.text);
+
             }
             else
-            {
+            { 
                 Debug.LogError("Failed to start game: " + www.error);
             }
         }
+
+        
     }
 
     public void GoBack()
@@ -183,6 +191,41 @@ public class LobbyManager : MonoBehaviour
         mainMenu.SetActive(true);
 
         Debug.Log("Returning to Main Menu");
+    }
+
+    private IEnumerator FetchUsernamesCoroutine(int lobbyId)
+    {
+        string url = $"http://localhost:8080/users/lobbyParticipants?lobbyId={lobbyId}";
+
+        UnityWebRequest request = UnityWebRequest.Get(url);
+        yield return request.SendWebRequest();
+
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            UsernameList result = JsonUtility.FromJson<UsernameList>("{\"usernames\":" + request.downloadHandler.text + "}");
+            string usernamesText = string.Join("\n", result.usernames);
+            usernamesDisplay.text = usernamesText;
+            foreach (var username in result.usernames)
+            {
+                Debug.Log("Username: " + username);
+            }
+        }
+        else
+        {
+            Debug.LogError("Failed to fetch usernames: " + request.error);
+        }
+    }
+
+    public void FetchAndDisplayUsernames()
+    {
+        StartCoroutine(FetchUsernamesCoroutine(initializedLobbyId));
+    }
+
+    [System.Serializable]
+    public class UsernameList
+    {
+        public List<string> usernames;
     }
 }
 
