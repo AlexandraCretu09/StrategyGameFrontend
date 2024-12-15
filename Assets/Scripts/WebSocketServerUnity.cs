@@ -8,6 +8,7 @@ public class WebSocketServerUnity : MonoBehaviour
     private WebSocketServer server;
     private GameMap currentGameMap;
 
+
     void Start()
     {
         Debug.Log("Starting WebSocket server on ws://127.0.0.1:8082/terrainUpdate");
@@ -61,3 +62,5 @@ public class WebSocketServerUnity : MonoBehaviour
         server.Dispose();
     }
 }
+
+
