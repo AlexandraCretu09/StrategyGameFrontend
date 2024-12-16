@@ -25,6 +25,7 @@ public class WebSocketServerUnity : MonoBehaviour
         });
 
         Debug.Log("Unity WebSocket server started on ws://127.0.0.1:8082/terrainUpdate");
+
     }
 
     private void UpdateTerrain(GameMap gameMap)
@@ -36,7 +37,7 @@ public class WebSocketServerUnity : MonoBehaviour
         {
             for (int j = 0; j < gameMap.mapWidth; j++)
             {
-                Vector3 position = new Vector3(i, 0, j);
+                Vector3 position = new Vector3(i, j, 0); // params are x y z
                 if (gameMap.terrain[i][j] == 0)
                 {
                     GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
