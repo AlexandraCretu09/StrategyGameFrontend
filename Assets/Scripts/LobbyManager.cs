@@ -13,14 +13,26 @@ public class LobbyManager : MonoBehaviour
     public GameObject mainMenu;
     public GameObject createLobbyMenu;
     public GameObject joinLobbyMenu;
+    public GameObject game;
     public TextMeshProUGUI usernamesDisplay;
 
     private int initializedLobbyId;
+
+    public static LobbyManager Instance;
+
+    void Awake()
+    {
+        if (Instance == null)
+            Instance = this;
+        else
+            Destroy(gameObject);
+    }
 
     void Start()
     {
         createLobbyMenu.SetActive(false);
         joinLobbyMenu.SetActive(false);
+        game.SetActive(false);
         mainMenu.SetActive(true);
     }
 
@@ -151,6 +163,11 @@ public class LobbyManager : MonoBehaviour
     {
         string username = usernameInputField.text;
 
+        createLobbyMenu.SetActive(false);
+        joinLobbyMenu.SetActive(false);
+        game.SetActive(true);
+        mainMenu.SetActive(false);
+
         StartCoroutine(StartGameCoroutine(username));
 
     }
@@ -214,6 +231,78 @@ public class LobbyManager : MonoBehaviour
         else
         {
             Debug.LogError("Failed to fetch usernames: " + request.error);
+        }
+    }
+
+
+    public void moveCommands(GameObject buttonObject)
+    {
+
+        Button button = buttonObject.GetComponent<Button>();
+        if (button == null)
+        {
+            Debug.LogError($"No Button component found on {buttonObject.name}");
+            return;
+        }
+        //Debug.Log($"in switch with {button.name}");
+        switch (button.name)
+        {
+            case "MoveRight":
+                //Debug.Log("in move right");
+                SendCommand("moveRight");
+                break;
+            case "MoveUp":
+                //Debug.Log("in move up");
+                SendCommand("moveUp");
+                break;
+            case "MoveDown":
+                //Debug.Log("in move down");
+                SendCommand("moveDown");
+                break;
+            case "MoveLeft":
+                //Debug.Log("in move left");
+                SendCommand("moveLeft");
+                break;
+            default:
+                Debug.Log($"broke {button.name}");
+                break;
+
+        }
+    }
+
+
+    public void SendCommand(string command)
+    {
+        string username = usernameInputField.text;
+
+        Debug.Log("Lobby Manager send command");
+
+        StartCoroutine(SendCommandCoroutine(username, command));
+    }
+
+    private IEnumerator SendCommandCoroutine(string username, string command)
+    {
+        string url = $"http://localhost:8080/users/usernameAndCommand";
+
+        WWWForm form = new WWWForm();
+        form.AddField("username", username);
+        form.AddField("command", command);
+
+        Debug.Log("Lobby Manager corountine send command");
+
+        using (UnityWebRequest www = UnityWebRequest.Post(url, form))
+        {
+            yield return www.SendWebRequest();
+
+            if (www.result == UnityWebRequest.Result.Success)
+            {
+                Debug.Log("Game started successfully: " + www.downloadHandler.text);
+
+            }
+            else
+            {
+                Debug.LogError("Failed to start game: " + www.error);
+            }
         }
     }
 
