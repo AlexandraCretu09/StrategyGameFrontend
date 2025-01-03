@@ -337,10 +337,17 @@ public class LobbyManager : MonoBehaviour
     public GameObject goldPrefab;
     public GameObject treePrefab;
 
-    private Vector2 previousPlayerPosition = Vector2.zero;
+
+    private List<GameObject> instantiatedTiles = new List<GameObject>();
 
     void RenderMap(int[,] mapMatrix)
     {
+        foreach (GameObject tile in instantiatedTiles)
+        {
+            Destroy(tile);
+        }
+        instantiatedTiles.Clear();
+
         int rows = mapMatrix.GetLength(0);
         int cols = mapMatrix.GetLength(1);
 
@@ -350,21 +357,7 @@ public class LobbyManager : MonoBehaviour
         float tileWidth = 16.0f;
         float tileHeight = 16.0f;
 
-        if (previousPlayerPosition != Vector2.zero)
-        {
-            int prevX = (int)previousPlayerPosition.x;
-            int prevY = (int)previousPlayerPosition.y;
 
-            mapMatrix[prevY, prevX] = 0;
-
-            GameObject prefab = GetTilePrefab(0);
-            if (prefab != null)
-            {
-                GameObject tile = Instantiate(prefab);
-                tile.transform.position = new Vector3(prevX * tileWidth + XOffset, -prevY * tileHeight + YOffset, 0);
-                tile.transform.localScale = new Vector3(tileWidth, tileHeight, 1);
-            }
-        }
         for (int i = 0; i < rows; i++)
         {
             for (int j = 0; j < cols; j++)
@@ -375,10 +368,7 @@ public class LobbyManager : MonoBehaviour
                     GameObject tile = Instantiate(prefab);
                     tile.transform.position = new Vector3(j * tileWidth + XOffset, -i * tileHeight + YOffset, 0);
                     tile.transform.localScale = new Vector3(tileWidth, tileHeight, 1);
-                    if (mapMatrix[i, j] == 1)
-                    {
-                        previousPlayerPosition = new Vector2(j, i);
-                    }
+                    instantiatedTiles.Add(tile);
                 }
                 else
                 {
@@ -393,9 +383,9 @@ public class LobbyManager : MonoBehaviour
     {
         switch (tileType)
         {
-            case 0: return stonePrefab;
+            case -1: return stonePrefab;
             case 1: return goldPrefab;
-            case -1: return landPrefab;
+            case 0: return landPrefab;
             default: return null;
         }
     }
