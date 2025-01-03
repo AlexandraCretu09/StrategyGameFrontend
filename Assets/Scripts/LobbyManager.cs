@@ -18,14 +18,20 @@ public class LobbyManager : MonoBehaviour
 
     private int initializedLobbyId;
 
-    public static LobbyManager Instance;
+    public static LobbyManager Instance { get; private set; }
+    public WebSocketServerUnity webSocketServerUnity;
 
     void Awake()
     {
         if (Instance == null)
+        {
             Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
         else
+        {
             Destroy(gameObject);
+        }
     }
 
     void Start()
@@ -275,8 +281,6 @@ public class LobbyManager : MonoBehaviour
     {
         string username = usernameInputField.text;
 
-        Debug.Log("Lobby Manager send command");
-
         StartCoroutine(SendCommandCoroutine(username, command));
     }
 
@@ -288,7 +292,6 @@ public class LobbyManager : MonoBehaviour
         form.AddField("username", username);
         form.AddField("command", command);
 
-        Debug.Log("Lobby Manager corountine send command");
 
         using (UnityWebRequest www = UnityWebRequest.Post(url, form))
         {
@@ -296,14 +299,112 @@ public class LobbyManager : MonoBehaviour
 
             if (www.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log("Game started successfully: " + www.downloadHandler.text);
+                string json = www.downloadHandler.text;
+
+                if (webSocketServerUnity != null)
+                {
+                    webSocketServerUnity.ProcessMessage(json);
+                }
+                else
+                {
+                    Debug.LogError("WebSocketServerUnity is not assigned!");
+                }
 
             }
             else
             {
-                Debug.LogError("Failed to start game: " + www.error);
+                Debug.LogError("Failed to send command: " + www.error);
             }
         }
+    }
+
+
+    public void RenderMapFromData(GameMap gameMap)
+    {
+        if (gameMap != null && gameMap.terrain != null)
+        {
+            int[,] terrainMatrix = ConvertTo2DArray(gameMap.terrain);
+            RenderMap(terrainMatrix);
+        }
+        else
+        {
+            Debug.LogError("Invalid game map data.");
+        }
+    }
+
+    public GameObject landPrefab;
+    public GameObject stonePrefab;
+    public GameObject goldPrefab;
+    public GameObject treePrefab;
+
+
+    private List<GameObject> instantiatedTiles = new List<GameObject>();
+
+    void RenderMap(int[,] mapMatrix)
+    {
+        foreach (GameObject tile in instantiatedTiles)
+        {
+            Destroy(tile);
+        }
+        instantiatedTiles.Clear();
+
+        int rows = mapMatrix.GetLength(0);
+        int cols = mapMatrix.GetLength(1);
+
+        int XOffset = Screen.width / 2 - Screen.width / 20;
+        int YOffset = Screen.height / 3 + Screen.height / 2;
+
+        float tileWidth = 16.0f;
+        float tileHeight = 16.0f;
+
+
+        for (int i = 0; i < rows; i++)
+        {
+            for (int j = 0; j < cols; j++)
+            {
+                GameObject prefab = GetTilePrefab(mapMatrix[i, j]);
+                if (prefab != null)
+                {
+                    GameObject tile = Instantiate(prefab);
+                    tile.transform.position = new Vector3(j * tileWidth + XOffset, -i * tileHeight + YOffset, 0);
+                    tile.transform.localScale = new Vector3(tileWidth, tileHeight, 1);
+                    instantiatedTiles.Add(tile);
+                }
+                else
+                {
+                    Debug.LogError($"Unknown tile type {mapMatrix[i, j]} at position ({i}, {j})");
+                }
+            }
+        }
+        
+    }
+
+    GameObject GetTilePrefab(int tileType)
+    {
+        switch (tileType)
+        {
+            case -1: return stonePrefab;
+            case 1: return goldPrefab;
+            case 0: return landPrefab;
+            default: return null;
+        }
+    }
+
+    private int[,] ConvertTo2DArray(int[][] jaggedArray)
+    {
+        int rows = jaggedArray.Length;
+        int cols = jaggedArray[0].Length;
+        int[,] result = new int[rows, cols];
+
+        for (int i = 0; i < rows; i++)
+        {
+            for (int j = 0; j < cols; j++)
+            {
+                result[i, j] = jaggedArray[i][j];
+            }
+        }
+
+        return result;
     }
 
     public void FetchAndDisplayUsernames()
@@ -315,6 +416,14 @@ public class LobbyManager : MonoBehaviour
     public class UsernameList
     {
         public List<string> usernames;
+    }
+
+    [System.Serializable]
+    public class MapData
+    {
+        public int mapHeight;
+        public int mapWidth;
+        public int[][] terrain;
     }
 }
 
