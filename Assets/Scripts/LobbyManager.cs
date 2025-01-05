@@ -69,7 +69,7 @@ public class LobbyManager : MonoBehaviour
 
     private IEnumerator CreateLobbyCoroutine(string ipAddress, string username)
     {
-        string url = "http://localhost:8080/lobby/createLobby";
+        string url = "http://192.168.1.228:8080/lobby/createLobby";
 
         WWWForm form = new WWWForm();
         form.AddField("ipAddress", ipAddress);
@@ -337,6 +337,13 @@ public class LobbyManager : MonoBehaviour
     public GameObject goldPrefab;
     public GameObject treePrefab;
 
+    public GameObject P1Prefab;
+    public GameObject P2Prefab;
+    public GameObject P3Prefab;
+    public GameObject P4Prefab;
+    public GameObject P5Prefab;
+    public GameObject P6Prefab;
+
 
     private List<GameObject> instantiatedTiles = new List<GameObject>();
 
@@ -384,8 +391,13 @@ public class LobbyManager : MonoBehaviour
         switch (tileType)
         {
             case -1: return stonePrefab;
-            case 1: return goldPrefab;
             case 0: return landPrefab;
+            case 1: return P1Prefab;
+            case 2: return P2Prefab;
+            case 3: return P3Prefab;
+            case 4: return P4Prefab;
+            case 5: return P5Prefab;
+            case 6: return P6Prefab;
             default: return null;
         }
     }
