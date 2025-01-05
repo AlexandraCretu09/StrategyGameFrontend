@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Collections.Concurrent;
+using UnityEngine.Networking;
 
 public class WebSocketServerUnity : MonoBehaviour
 {
@@ -16,7 +17,12 @@ public class WebSocketServerUnity : MonoBehaviour
     void Start()
     {
         //Debug.Log("Starting WebSocket server on ws://127.0.0.1:8082/terrainUpdate");
-        server = new WebSocketServer("ws://127.0.0.1:8082/terrainUpdate");
+        string localIP = NetworkUtils.GetLocalIPAddress();
+
+        Debug.Log("Ip:   " + "ws://" + localIP + ":8082/terrainUpdate");
+
+
+        server = new WebSocketServer("ws://" + localIP + ":8082/terrainUpdate");
         server.Start(socket =>
         {
             socket.OnOpen = () => Debug.Log("Spring connected.");
@@ -28,7 +34,7 @@ public class WebSocketServerUnity : MonoBehaviour
             };
         });
 
-        Debug.Log("Unity WebSocket server started on ws://127.0.0.1:8082/terrainUpdate");
+        Debug.Log("Unity WebSocket server started on ws://" + localIP + ":8082/terrainUpdate");
     }
 
     void Update()
