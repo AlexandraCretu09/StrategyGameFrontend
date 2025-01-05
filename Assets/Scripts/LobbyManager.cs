@@ -16,6 +16,8 @@ public class LobbyManager : MonoBehaviour
     public GameObject game;
     public TextMeshProUGUI usernamesDisplay;
 
+    private int[,] gameCurrentTerrain = new int[10, 10];
+
     private int initializedLobbyId;
 
     public static LobbyManager Instance { get; private set; }
@@ -57,7 +59,7 @@ public class LobbyManager : MonoBehaviour
         joinLobbyMenu.SetActive(false);
         createLobbyMenu.SetActive(true);
 
-        Debug.Log("Lobby created with username: " + username);
+        //Debug.Log("Lobby created with username: " + username);
 
         string localIP = NetworkUtils.GetLocalIPAddress();
         StartCoroutine(CreateLobbyCoroutine(localIP, username));
@@ -82,13 +84,13 @@ public class LobbyManager : MonoBehaviour
 
             if (www.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log("Lobby created successfully: " + www.downloadHandler.text);
+               // Debug.Log("Lobby created successfully: " + www.downloadHandler.text);
 
                 if (int.TryParse(www.downloadHandler.text, out int lobbyId))
                 {
                     initializedLobbyId = lobbyId;
-                    Debug.Log("Stored Lobby ID: " + initializedLobbyId);
-                    Debug.Log("Lobby created with username: " + username);
+                    //Debug.Log("Stored Lobby ID: " + initializedLobbyId);
+                    //Debug.Log("Lobby created with username: " + username);
                     FetchAndDisplayUsernames();
                 }
                 else
@@ -119,7 +121,7 @@ public class LobbyManager : MonoBehaviour
         createLobbyMenu.SetActive(false);
         joinLobbyMenu.SetActive(true);
 
-        Debug.Log("Switching to join lobby with username: " + username);
+        //Debug.Log("Switching to join lobby with username: " + username);
     }
 
     public void SubmitJoinLobby()
@@ -129,7 +131,7 @@ public class LobbyManager : MonoBehaviour
 
         if (int.TryParse(lobbyIdInputField.text, out int lobbyId))
         {
-            Debug.Log("Joining lobby with ID: " + lobbyId + " and username: " + username);
+            //Debug.Log("Joining lobby with ID: " + lobbyId + " and username: " + username);
 
             string localIP = NetworkUtils.GetLocalIPAddress();
             StartCoroutine(JoinLobbyCoroutine(lobbyId, localIP, username));
@@ -169,10 +171,7 @@ public class LobbyManager : MonoBehaviour
     {
         string username = usernameInputField.text;
 
-        createLobbyMenu.SetActive(false);
-        joinLobbyMenu.SetActive(false);
-        game.SetActive(true);
-        mainMenu.SetActive(false);
+        
 
         StartCoroutine(StartGameCoroutine(username));
 
@@ -202,6 +201,17 @@ public class LobbyManager : MonoBehaviour
         }
 
         
+    }
+
+    public void OnGameStarted()
+    {
+        mainMenu.SetActive(false);
+        createLobbyMenu.SetActive(false);
+        joinLobbyMenu.SetActive(false);
+        game.SetActive(true);
+
+        Debug.Log("Game started. Activating game object for all players.");
+        RenderMap(gameCurrentTerrain);
     }
 
     public void GoBack()
@@ -323,6 +333,11 @@ public class LobbyManager : MonoBehaviour
     {
         if (gameMap != null && gameMap.terrain != null)
         {
+            createLobbyMenu.SetActive(false);
+            joinLobbyMenu.SetActive(false);
+            game.SetActive(true);
+            mainMenu.SetActive(false);
+
             int[,] terrainMatrix = ConvertTo2DArray(gameMap.terrain);
             RenderMap(terrainMatrix);
         }
@@ -349,6 +364,8 @@ public class LobbyManager : MonoBehaviour
 
     void RenderMap(int[,] mapMatrix)
     {
+        gameCurrentTerrain = mapMatrix;
+
         foreach (GameObject tile in instantiatedTiles)
         {
             Destroy(tile);
