@@ -5,18 +5,22 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Collections.Concurrent;
 using UnityEngine.Networking;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 public class WebSocketServerUnity : MonoBehaviour
 {
     private WebSocketServer server;
+    private GameData currentGameData;
     private GameMap currentGameMap;
+    private List<MapResources> currentGameResources;
     private ConcurrentQueue<string> messageQueue = new ConcurrentQueue<string>();
 
 
     void Start()
     {
         string localIP = NetworkUtils.GetLocalIPAddress();
-        Debug.Log("Ip:   " + "ws://" + localIP + ":8082/terrainUpdate");
+        //Debug.Log("Ip:   " + "ws://" + localIP + ":8082/terrainUpdate");
         server = new WebSocketServer("ws://" + localIP + ":8082/terrainUpdate");
         server.Start(socket =>
         {
@@ -49,16 +53,12 @@ public class WebSocketServerUnity : MonoBehaviour
     {
         try
         {
-            currentGameMap = SafeDeserialize(message);
-            //Debug.Log("Deserialization successful: " + currentGameMap.mapHeight + "x" + currentGameMap.mapWidth);
-
-
-
-            if (currentGameMap != null)
+            currentGameData = SafeDeserialize(message);
+            if (currentGameData != null)
             {
-                Debug.Log("Terrain array dimensions: " + currentGameMap.terrain.Length);
-
-                StartCoroutine(RenderMapCoroutine(currentGameMap));
+                currentGameMap = currentGameData.gameMap;
+                currentGameResources = currentGameData.resources;
+                StartCoroutine(RenderMapCoroutine(currentGameMap, currentGameResources));
             }
             else
                 Debug.Log("current game map is null.");
@@ -70,47 +70,38 @@ public class WebSocketServerUnity : MonoBehaviour
         }
     }
 
-    private GameMap SafeDeserialize(string json)
+    private GameData SafeDeserialize(string json)
     {
         try
         {
-            Debug.Log("Attempting to deserialize JSON...");
-            GameMap deserializedMap = Newtonsoft.Json.JsonConvert.DeserializeObject<GameMap>(json);
+            Debug.Log("Raw JSON: " + json);
+            JObject gameDataJson = JObject.Parse(json);
 
-            if (deserializedMap == null)
-            {
-                Debug.LogError("Deserialization returned null.");
-            }
-            else
-            {
-                Debug.Log($"Deserialization successful: {deserializedMap.mapHeight}x{deserializedMap.mapWidth}");
-                if (deserializedMap.terrain != null)
-                {
-                    foreach (var row in deserializedMap.terrain)
-                    {
-                        //Debug.Log("Row length: " + (row != null ? row.Length.ToString() : "null"));
-                    }
-                }
-                else
-                {
-                    Debug.LogError("Terrain array is null.");
-                }
-            }
+            var gameMapJson = gameDataJson["gameMap"].ToString();
+            GameMap gameMap = JsonConvert.DeserializeObject<GameMap>(gameMapJson);
 
-            return deserializedMap;
+            var resourcesJson = gameDataJson["resources"].ToString();
+            List<MapResources> resources = JsonConvert.DeserializeObject<List<MapResources>>(resourcesJson);
+
+            return new GameData
+            {
+                gameMap = gameMap,
+                resources = resources
+            };
         }
         catch (Exception ex)
         {
+
             Debug.LogError("Exception during deserialization: " + ex.Message);
             Debug.LogError("Stack Trace: " + ex.StackTrace);
             return null;
         }
     }
 
-    private IEnumerator RenderMapCoroutine(GameMap gameMap)
+    private IEnumerator RenderMapCoroutine(GameMap gameMap, List<MapResources> resources)
     {
         yield return null;
 
-        LobbyManager.Instance.RenderMapFromData(gameMap);
+        LobbyManager.Instance.RenderMapFromData(gameMap, resources);
     }
 }

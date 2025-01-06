@@ -17,6 +17,7 @@ public class LobbyManager : MonoBehaviour
     public TextMeshProUGUI usernamesDisplay;
 
     private int[,] gameCurrentTerrain = new int[10, 10];
+    private List<MapResources> currentResources;
 
     private int initializedLobbyId;
 
@@ -211,7 +212,7 @@ public class LobbyManager : MonoBehaviour
         game.SetActive(true);
 
         Debug.Log("Game started. Activating game object for all players.");
-        RenderMap(gameCurrentTerrain);
+        RenderMap(gameCurrentTerrain, currentResources);
     }
 
     public void GoBack()
@@ -329,7 +330,7 @@ public class LobbyManager : MonoBehaviour
     }
 
 
-    public void RenderMapFromData(GameMap gameMap)
+    public void RenderMapFromData(GameMap gameMap, List<MapResources> resources)
     {
         if (gameMap != null && gameMap.terrain != null)
         {
@@ -339,7 +340,7 @@ public class LobbyManager : MonoBehaviour
             mainMenu.SetActive(false);
 
             int[,] terrainMatrix = ConvertTo2DArray(gameMap.terrain);
-            RenderMap(terrainMatrix);
+            RenderMap(terrainMatrix, resources);
         }
         else
         {
@@ -362,9 +363,10 @@ public class LobbyManager : MonoBehaviour
 
     private List<GameObject> instantiatedTiles = new List<GameObject>();
 
-    void RenderMap(int[,] mapMatrix)
+    public void RenderMap(int[,] mapMatrix, List<MapResources> resources)
     {
         gameCurrentTerrain = mapMatrix;
+        currentResources = resources;
 
         foreach (GameObject tile in instantiatedTiles)
         {
@@ -381,12 +383,21 @@ public class LobbyManager : MonoBehaviour
         float tileWidth = 16.0f;
         float tileHeight = 16.0f;
 
+        GameObject prefab;
+
 
         for (int i = 0; i < rows; i++)
         {
             for (int j = 0; j < cols; j++)
             {
-                GameObject prefab = GetTilePrefab(mapMatrix[i, j]);
+                if (mapMatrix[i, j] == -1)
+                {
+                    prefab = getResource(resources, i, j);
+                }
+                else
+                {
+                    prefab = GetTilePrefab(mapMatrix[i, j]);
+                }
                 if (prefab != null)
                 {
                     GameObject tile = Instantiate(prefab);
@@ -396,18 +407,40 @@ public class LobbyManager : MonoBehaviour
                 }
                 else
                 {
-                    Debug.LogError($"Unknown tile type {mapMatrix[i, j]} at position ({i}, {j})");
+                    Debug.LogError($"Unknown tile type {mapMatrix[i, j]} at position ({i}, {j}).");
                 }
             }
         }
-        
+
     }
 
-    GameObject GetTilePrefab(int tileType)
+    private GameObject getResource(List<MapResources> resources, int x, int y)
+    {
+        for (int i = 0; i< resources.Count; i++)
+        {
+            if (resources[i].GetX() == y && resources[i].GetY() == x)
+            {
+                return GetResourceTilePrefab(resources[i].GetResType());
+            }
+        }
+        return null;
+    }
+
+    private GameObject GetResourceTilePrefab(string tileType)
+    {
+        return tileType switch
+        {
+            "wood" => treePrefab,
+            "stone" => stonePrefab,
+            "gold" => goldPrefab,
+            _ => null,
+        };
+    }
+
+    private GameObject GetTilePrefab(int tileType)
     {
         switch (tileType)
         {
-            case -1: return stonePrefab;
             case 0: return landPrefab;
             case 1: return P1Prefab;
             case 2: return P2Prefab;
